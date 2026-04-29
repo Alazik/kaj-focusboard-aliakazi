@@ -2,12 +2,17 @@ import { Router } from "./router.js";
 import { TaskStore } from "./store.js";
 import { PomodoroTimer } from "./pomodoro.js";
 import "./components/task-card.js";
+import { SettingsStore } from "./settings.js";
 
 const view = document.getElementById("view");
 const netStatus = document.getElementById("netStatus");
 const ding = document.getElementById("ding");
 
 const store = new TaskStore();
+const settings = new SettingsStore();
+
+applyTheme(settings.get().theme);
+
 const router = new Router({ onRoute: renderRoute });
 
 const timer = new PomodoroTimer({
@@ -95,6 +100,7 @@ function renderBoard() {
     });
     router.go("/board");
   });
+
   initSortable();
 }
 
@@ -244,31 +250,109 @@ function renderFocus() {
   const minutes = document.getElementById("minutes");
   const volume = document.getElementById("volume");
 
-  ding.volume = Number(volume.value);
+  const s = settings.get();
+  minutes.value = s.pomodoroWorkMin;
+  volume.value = s.volume;
+  ding.volume = s.volume;
 
-  minutes.addEventListener("change", () => timer.setMinutes(minutes.value));
-  volume.addEventListener("input", () => (ding.volume = Number(volume.value)));
+  // ВАЖНО: если таймер уже идёт — не сбрасываем setMinutes()
+  if (timer.isRunning()) {
+    updatePomodoroUI(timer.getState());
+    minutes.disabled = true;
+  } else {
+    minutes.disabled = false;
+    timer.setMinutes(s.pomodoroWorkMin);
+  }
 
-  document.getElementById("startBtn").addEventListener("click", () => timer.start());
-  document.getElementById("stopBtn").addEventListener("click", () => timer.stop());
-  document.getElementById("resetBtn").addEventListener("click", () => timer.reset());
+  minutes.addEventListener("change", () => {
+    const m = Number(minutes.value);
+    settings.set({ pomodoroWorkMin: m });
+    if (!timer.isRunning()) timer.setMinutes(m);
+  });
 
-  timer.setMinutes(minutes.value);
+  volume.addEventListener("input", () => {
+    const v = Number(volume.value);
+    settings.set({ volume: v });
+    ding.volume = v;
+  });
+
+  document.getElementById("startBtn").addEventListener("click", () => {
+    timer.start();
+    minutes.disabled = true;
+  });
+
+  document.getElementById("stopBtn").addEventListener("click", () => {
+    timer.stop();
+    minutes.disabled = false;
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    timer.reset();
+    minutes.disabled = false;
+  });
 }
 
 function renderSettings() {
+  const s = settings.get();
+
   view.innerHTML = `
     <div class="card">
       <h2 style="margin:0 0 10px;">Settings</h2>
-      <p style="color:var(--muted); margin-top:0;">
-        Zde může být téma, zvuk, atd. (dokončíme později).
-      </p>
 
-      <div class="actions">
-        <a class="btn" href="/board" data-link style="text-decoration:none;">Na Board</a>
-      </div>
+      <form class="form" id="settingsForm">
+        <div class="field">
+          <label for="theme">Téma</label>
+          <select id="theme" name="theme">
+            <option value="dark" ${s.theme === "dark" ? "selected" : ""}>dark</option>
+            <option value="light" ${s.theme === "light" ? "selected" : ""}>light</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="work">Pomodoro work (min)</label>
+            <input id="work" name="work" type="number" min="1" max="90" value="${s.pomodoroWorkMin}" />
+          </div>
+          <div class="field">
+            <label for="break">Pomodoro break (min)</label>
+            <input id="break" name="break" type="number" min="1" max="30" value="${s.pomodoroBreakMin}" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="vol">Hlasitost (0–1)</label>
+          <input id="vol" name="vol" type="range" min="0" max="1" step="0.05" value="${s.volume}" />
+        </div>
+
+        <div class="actions">
+          <button class="btn btn--primary" type="submit">Uložit</button>
+          <a class="btn" href="/board" data-link style="text-decoration:none;">Zpět</a>
+        </div>
+      </form>
     </div>
   `;
+
+  document.getElementById("settingsForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+
+    const theme = String(fd.get("theme"));
+    const work = Number(fd.get("work"));
+    const brk = Number(fd.get("break"));
+    const volume = Number(fd.get("vol"));
+
+    settings.set({
+      theme,
+      pomodoroWorkMin: work,
+      pomodoroBreakMin: brk,
+      volume,
+    });
+
+    applyTheme(theme);
+    ding.volume = volume;
+
+    router.go("/settings");
+  });
 }
 
 function renderNotFound() {
@@ -284,7 +368,6 @@ function renderNotFound() {
 /* ---------- SVG (JS práce s SVG) ---------- */
 
 function renderSvgRing() {
-  // circle circumference for r=46: 2πr ~ 289
   return `
     <svg width="120" height="120" viewBox="0 0 120 120" aria-label="Progress">
       <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="10"></circle>
@@ -338,6 +421,7 @@ async function registerServiceWorker() {
 }
 
 /* ---------- helpers ---------- */
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -354,15 +438,16 @@ function initSortable() {
     new Sortable(listEl, {
       group: "tasks",
       animation: 150,
-
       onAdd: (evt) => {
-        const toStatus = evt.to.dataset.status; // todo/doing/done
-        const card = evt.item; // наш <task-card>
-        const id = card.getAttribute("task-id");
+        const toStatus = evt.to.dataset.status;
+        const id = evt.item.getAttribute("task-id");
         if (!id) return;
-
         store.update(id, { status: toStatus });
-      }
+      },
     });
   });
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
 }

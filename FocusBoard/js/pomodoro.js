@@ -42,4 +42,8 @@ export class PomodoroTimer {
         const progress = 1 - this.leftSec / this.totalSec; // 0..1
         return { totalSec: this.totalSec, leftSec: this.leftSec, progress };
     }
+
+    isRunning() {
+        return this.intervalId !== null;
+    }
 }
