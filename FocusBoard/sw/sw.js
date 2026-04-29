@@ -10,6 +10,9 @@ const ASSETS = [
     "./js/components/task-card.js",
     "./assets/ding.mp3",
     "./manifest.json",
+    "./js/settings.js",
+    "./assets/icons/icon-192.png",
+    "./assets/icons/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
