@@ -4,6 +4,12 @@ import { PomodoroTimer } from "./pomodoro.js";
 import "./components/task-card.js";
 import { SettingsStore } from "./settings.js";
 
+/*
+  Pozn.: Aplikace je SPA s History API (Router používá pushState/popstate).
+  Proto pro refresh na /board, /focus, /settings je potřeba server se SPA fallback
+  (např. `npx serve -s .`), jinak jednoduchý statický server vrátí "Cannot GET /route".
+*/
+
 const view = document.getElementById("view");
 const netStatus = document.getElementById("netStatus");
 const ding = document.getElementById("ding");
@@ -11,6 +17,8 @@ const ding = document.getElementById("ding");
 const store = new TaskStore();
 const settings = new SettingsStore();
 
+// Načteme uložené nastavení (LocalStorage) a aplikujeme téma hned při startu,
+// aby se UI nepřepínalo až po prvním renderu.
 applyTheme(settings.get().theme);
 
 const router = new Router({ onRoute: renderRoute });
@@ -18,6 +26,7 @@ const router = new Router({ onRoute: renderRoute });
 const timer = new PomodoroTimer({
   onTick: (s) => updatePomodoroUI(s),
   onDone: () => {
+    // Po dokončení intervalu přehrajeme zvuk (Media API).
     ding.currentTime = 0;
     ding.play().catch(() => { });
   },
@@ -28,6 +37,7 @@ setupNetStatus();
 registerServiceWorker();
 
 function renderRoute(path) {
+  // Jednoduchý router: podle URL vykreslí odpovídající "stránku" do #view.
   if (path === "/" || path === "/board") return renderBoard();
   if (path === "/task") return renderTaskDetail();
   if (path === "/focus") return renderFocus();
@@ -93,35 +103,39 @@ function renderBoard() {
   document.getElementById("createForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+
+    // CRUD: vytvoření úkolu + uložení do LocalStorage (přes TaskStore).
     store.create({
       title: String(fd.get("title")).trim(),
       dueDate: String(fd.get("dueDate") || ""),
       priority: String(fd.get("priority") || "normal"),
     });
+
     router.go("/board");
   });
 
+  // SortableJS inicializujeme až po vykreslení sloupců (DOM musí existovat).
+  // Přetahování mezi sloupci aktualizuje status úkolu a uloží se do LocalStorage.
   initSortable();
+  updateEmptyMessages();
 }
 
 function renderColumn(title, status, tasks) {
-  const cards = tasks
-    .map(
-      (t) => `
-      <task-card
-        task-id="${t.id}"
-        title="${escapeHtml(t.title)}"
-        due="${escapeHtml(t.dueDate || "")}"
-        priority="${escapeHtml(t.priority)}">
-      </task-card>`
-    )
-    .join("");
+  const cards = tasks.map((t) => `
+    <task-card
+      task-id="${t.id}"
+      title="${escapeHtml(t.title)}"
+      due="${escapeHtml(t.dueDate || "")}"
+      priority="${escapeHtml(t.priority)}">
+    </task-card>
+  `).join("");
 
   return `
     <section class="col" data-status="${status}">
       <h3 class="col__title">${title}</h3>
       <div class="col__list" id="list-${status}" data-status="${status}">
-        ${cards || `<p style="color:var(--muted); margin:0;">(prázdné)</p>`}
+        ${cards}
+        <p class="empty-msg">(prázdné)</p>
       </div>
     </section>
   `;
@@ -195,6 +209,8 @@ function renderTaskDetail() {
   document.getElementById("detailForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+
+    // CRUD: update úkolu.
     store.update(task.id, {
       title: String(fd.get("title")).trim(),
       description: String(fd.get("description") || ""),
@@ -202,10 +218,12 @@ function renderTaskDetail() {
       priority: String(fd.get("priority") || "normal"),
       status: String(fd.get("status") || "todo"),
     });
+
     router.go("/board");
   });
 
   document.getElementById("deleteBtn").addEventListener("click", () => {
+    // CRUD: delete úkolu.
     store.remove(task.id);
     router.go("/board");
   });
@@ -255,7 +273,8 @@ function renderFocus() {
   volume.value = s.volume;
   ding.volume = s.volume;
 
-  // ВАЖНО: если таймер уже идёт — не сбрасываем setMinutes()
+  // Důležité: při návratu na stránku Focus nechceme resetovat běžící timer.
+  // Kdybychom pokaždé volali timer.setMinutes(...), timer by se vynuloval při každém přepnutí stránky.
   if (timer.isRunning()) {
     updatePomodoroUI(timer.getState());
     minutes.disabled = true;
@@ -267,6 +286,9 @@ function renderFocus() {
   minutes.addEventListener("change", () => {
     const m = Number(minutes.value);
     settings.set({ pomodoroWorkMin: m });
+
+    // Délku Pomodoro měníme jen když timer neběží.
+    // Během běhu by změna délky znamenala "reset" a nekonzistentní stav.
     if (!timer.isRunning()) timer.setMinutes(m);
   });
 
@@ -399,11 +421,13 @@ function updatePomodoroUI(state) {
 /* ---------- NET STATUS ---------- */
 
 function setupNetStatus() {
+  // Jednoduchý indikátor připojení (online/offline) – reaguje na události prohlížeče.
   const update = () => {
     const online = navigator.onLine;
     netStatus.textContent = online ? "Online" : "Offline";
     netStatus.dataset.online = String(online);
   };
+
   window.addEventListener("online", update);
   window.addEventListener("offline", update);
   update();
@@ -412,7 +436,10 @@ function setupNetStatus() {
 /* ---------- SERVICE WORKER (offline) ---------- */
 
 async function registerServiceWorker() {
+  // Service Worker zajišťuje offline režim (Cache API).
+  // Po instalaci SW lze aplikaci otevřít i bez internetu (alespoň statické soubory).
   if (!("serviceWorker" in navigator)) return;
+
   try {
     await navigator.serviceWorker.register("./sw/sw.js");
   } catch {
@@ -423,6 +450,7 @@ async function registerServiceWorker() {
 /* ---------- helpers ---------- */
 
 function escapeHtml(s) {
+  // Jednoduché escapování HTML (kvůli bezpečnému vložení textu do šablon).
   return String(s)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -432,22 +460,54 @@ function escapeHtml(s) {
 }
 
 function initSortable() {
-  const lists = document.querySelectorAll(".col__list");
-
-  lists.forEach((listEl) => {
+  document.querySelectorAll(".col__list").forEach((listEl) => {
     new Sortable(listEl, {
       group: "tasks",
       animation: 150,
+
+      draggable: "task-card",
+
+      filter: ".empty-msg",
+      preventOnFilter: false,
+
       onAdd: (evt) => {
         const toStatus = evt.to.dataset.status;
         const id = evt.item.getAttribute("task-id");
         if (!id) return;
+
         store.update(id, { status: toStatus });
+
+        updateEmptyMessages();
       },
+
+      onRemove: () => {
+        updateEmptyMessages();
+      }
     });
   });
 }
 
+function updateEmptyMessages() {
+  document.querySelectorAll(".col__list").forEach((list) => {
+    const hasTask = list.querySelector("task-card") !== null;
+    list.classList.toggle("has-items", hasTask);
+  });
+}
+
 function applyTheme(theme) {
+  // Uložené téma se aplikuje přes data atribut na <html>.
   document.documentElement.dataset.theme = theme;
 }
+
+// OOP demo (prototypová dědičnost)
+function BaseEntity() { }
+BaseEntity.prototype.getType = function () { return "base"; };
+
+function TaskEntity() { }
+TaskEntity.prototype = Object.create(BaseEntity.prototype);
+TaskEntity.prototype.constructor = TaskEntity;
+TaskEntity.prototype.getType = function () { return "task"; };
+
+// "jmenný prostor" (namespace) pattern
+window.FocusBoard = window.FocusBoard || {};
+window.FocusBoard.TaskEntity = TaskEntity;

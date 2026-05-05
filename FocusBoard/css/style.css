@@ -329,3 +329,13 @@ textarea {
 .col__list .sortable-drag {
     transform: rotate(1deg);
 }
+
+.empty-msg {
+    color: var(--muted);
+    margin: 0;
+    user-select: none;
+}
+
+.col__list.has-items .empty-msg {
+    display: none;
+}
