@@ -40,8 +40,12 @@ export class TaskStore {
     }
 
     create(data) {
+        const id = (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function")
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
         const task = new Task({
-            id: crypto.randomUUID(),
+            id,
             createdAt: new Date().toISOString(),
             status: "todo",
             priority: "normal",

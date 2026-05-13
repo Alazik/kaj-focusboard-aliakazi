@@ -60,13 +60,13 @@ function renderBoard() {
       <div class="card">
         <h2 style="margin:0 0 10px;">Kanban Board</h2>
 
-        <form class="form" id="createForm">
+        <!-- novalidate: na mobilech je validace někdy "tichá" / neviditelná -->
+        <form class="form" id="createForm" novalidate>
           <div class="field">
             <label for="title">Název úkolu *</label>
             <input id="title" name="title" required autofocus
               minlength="3" maxlength="60"
-              placeholder="Např. Udělat domácí úkol"
-              pattern=".{3,}" />
+              placeholder="Např. Udělat domácí úkol"/>
           </div>
 
           <div class="row">
@@ -104,13 +104,21 @@ function renderBoard() {
     e.preventDefault();
     const fd = new FormData(e.target);
 
+    // ✅ vlastní jednoduchá validace (spolehlivá i na mobilu)
+    const title = String(fd.get("title") || "").trim();
+    if (title.length < 3) {
+      alert("Název úkolu musí mít alespoň 3 znaky.");
+      return;
+    }
+
     // CRUD: vytvoření úkolu + uložení do LocalStorage (přes TaskStore).
     store.create({
-      title: String(fd.get("title")).trim(),
+      title,
       dueDate: String(fd.get("dueDate") || ""),
       priority: String(fd.get("priority") || "normal"),
     });
 
+    // zůstáváme na boardu, ale přerenderujeme
     router.go("/board");
   });
 
@@ -121,14 +129,18 @@ function renderBoard() {
 }
 
 function renderColumn(title, status, tasks) {
-  const cards = tasks.map((t) => `
+  const cards = tasks
+    .map(
+      (t) => `
     <task-card
       task-id="${t.id}"
       title="${escapeHtml(t.title)}"
       due="${escapeHtml(t.dueDate || "")}"
       priority="${escapeHtml(t.priority)}">
     </task-card>
-  `).join("");
+  `
+    )
+    .join("");
 
   return `
     <section class="col" data-status="${status}">
@@ -212,7 +224,7 @@ function renderTaskDetail() {
 
     // CRUD: update úkolu.
     store.update(task.id, {
-      title: String(fd.get("title")).trim(),
+      title: String(fd.get("title") || "").trim(),
       description: String(fd.get("description") || ""),
       dueDate: String(fd.get("dueDate") || ""),
       priority: String(fd.get("priority") || "normal"),
@@ -274,7 +286,6 @@ function renderFocus() {
   ding.volume = s.volume;
 
   // Důležité: při návratu na stránku Focus nechceme resetovat běžící timer.
-  // Kdybychom pokaždé volali timer.setMinutes(...), timer by se vynuloval při každém přepnutí stránky.
   if (timer.isRunning()) {
     updatePomodoroUI(timer.getState());
     minutes.disabled = true;
@@ -288,7 +299,6 @@ function renderFocus() {
     settings.set({ pomodoroWorkMin: m });
 
     // Délku Pomodoro měníme jen když timer neběží.
-    // Během běhu by změna délky znamenala "reset" a nekonzistentní stav.
     if (!timer.isRunning()) timer.setMinutes(m);
   });
 
@@ -421,7 +431,6 @@ function updatePomodoroUI(state) {
 /* ---------- NET STATUS ---------- */
 
 function setupNetStatus() {
-  // Jednoduchý indikátor připojení (online/offline) – reaguje na události prohlížeče.
   const update = () => {
     const online = navigator.onLine;
     netStatus.textContent = online ? "Online" : "Offline";
@@ -430,6 +439,10 @@ function setupNetStatus() {
 
   window.addEventListener("online", update);
   window.addEventListener("offline", update);
+
+  // fallback: некоторые браузеры не всегда корректně vyvolají eventy
+  setInterval(update, 2000);
+
   update();
 }
 
@@ -465,24 +478,31 @@ function initSortable() {
       group: "tasks",
       animation: 150,
 
+      // ✅ Drag jen pro karty (ne pro "(prázdné)")
       draggable: "task-card",
 
+      // ✅ lepší chování na mobilech (touch)
+      delay: 150,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 5,
+
+      // ✅ "(prázdné)" je ignorováno
       filter: ".empty-msg",
       preventOnFilter: false,
 
+      // onAdd = úkol byl přesunut do jiného sloupce.
       onAdd: (evt) => {
         const toStatus = evt.to.dataset.status;
         const id = evt.item.getAttribute("task-id");
         if (!id) return;
 
         store.update(id, { status: toStatus });
-
         updateEmptyMessages();
       },
 
       onRemove: () => {
         updateEmptyMessages();
-      }
+      },
     });
   });
 }
