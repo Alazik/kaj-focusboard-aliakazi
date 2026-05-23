@@ -298,19 +298,19 @@ textarea {
     margin-right: 8px;
 }
 
-.status[data-online="true"]::before {
-    color: var(--ok);
-}
-
-.status[data-online="false"]::before {
-    color: var(--danger);
-}
-
 .status[data-online="true"] {
     color: var(--ok);
 }
 
 .status[data-online="false"] {
+    color: var(--danger);
+}
+
+.status[data-online="true"]::before {
+    color: var(--ok);
+}
+
+.status[data-online="false"]::before {
     color: var(--danger);
 }
 

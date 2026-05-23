@@ -1,4 +1,6 @@
+
 const CACHE_NAME = "focusboard-cache-v1";
+
 const ASSETS = [
     "./",
     "./index.html",
@@ -7,18 +9,16 @@ const ASSETS = [
     "./js/router.js",
     "./js/store.js",
     "./js/pomodoro.js",
-    "./js/components/task-card.js",
-    "./assets/ding.mp3",
-    "./manifest.json",
     "./js/settings.js",
+    "./js/components/task-card.js",
+    "./manifest.json",
+    "./assets/ding.mp3",
     "./assets/icons/icon-192.png",
     "./assets/icons/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-    );
+    event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
     self.skipWaiting();
 });
 
@@ -32,6 +32,13 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+    const url = new URL(event.request.url);
+
+    if (url.pathname === "/__ping__") {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request).then((cached) => cached || fetch(event.request))
     );

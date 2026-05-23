@@ -4,12 +4,6 @@ import { PomodoroTimer } from "./pomodoro.js";
 import "./components/task-card.js";
 import { SettingsStore } from "./settings.js";
 
-/*
-  Pozn.: Aplikace je SPA s History API (Router používá pushState/popstate).
-  Proto pro refresh na /board, /focus, /settings je potřeba server se SPA fallback
-  (např. `npx serve -s .`), jinak jednoduchý statický server vrátí "Cannot GET /route".
-*/
-
 const view = document.getElementById("view");
 const netStatus = document.getElementById("netStatus");
 const ding = document.getElementById("ding");
@@ -431,19 +425,38 @@ function updatePomodoroUI(state) {
 /* ---------- NET STATUS ---------- */
 
 function setupNetStatus() {
-  const update = () => {
-    const online = navigator.onLine;
+  const setStatus = (online) => {
     netStatus.textContent = online ? "Online" : "Offline";
     netStatus.dataset.online = String(online);
   };
 
-  window.addEventListener("online", update);
-  window.addEventListener("offline", update);
+  const probeInternet = async () => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
 
-  // fallback: некоторые браузеры не всегда корректně vyvolají eventy
-  setInterval(update, 2000);
+    try {
+      await fetch("https://www.gstatic.com/generate_204", {
+        method: "GET",
+        mode: "no-cors",
+        cache: "no-store",
+        signal: ctrl.signal,
+      });
 
-  update();
+      setStatus(true);
+    } catch {
+      setStatus(false);
+    } finally {
+      clearTimeout(t);
+    }
+  };
+
+  // События оставим, но главное — probeInternet()
+  window.addEventListener("online", probeInternet);
+  window.addEventListener("offline", () => setStatus(false));
+
+  setStatus(navigator.onLine);
+  probeInternet();
+  setInterval(probeInternet, 3000);
 }
 
 /* ---------- SERVICE WORKER (offline) ---------- */
@@ -478,15 +491,12 @@ function initSortable() {
       group: "tasks",
       animation: 150,
 
-      // ✅ Drag jen pro karty (ne pro "(prázdné)")
       draggable: "task-card",
 
-      // ✅ lepší chování na mobilech (touch)
       delay: 150,
       delayOnTouchOnly: true,
       touchStartThreshold: 5,
 
-      // ✅ "(prázdné)" je ignorováno
       filter: ".empty-msg",
       preventOnFilter: false,
 
