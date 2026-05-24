@@ -1,7 +1,8 @@
 {
     "name": "FocusBoard",
     "short_name": "FocusBoard",
-    "start_url": "/board",
+    "start_url": "./board",
+    "scope": "./",
     "display": "standalone",
     "background_color": "#0f0f12",
     "theme_color": "#111111",

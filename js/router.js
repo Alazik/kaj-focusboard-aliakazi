@@ -6,6 +6,7 @@ export class Router {
 
     init() {
         window.addEventListener("popstate", this.handlePopState);
+
         document.addEventListener("click", (e) => {
             const link = e.target.closest("a[data-link]");
             if (!link) return;
@@ -27,15 +28,30 @@ export class Router {
     }
 
     renderCurrent() {
-        const path = window.location.pathname || "/board";
+        const path = window.location.pathname || "./board";
         this.onRoute(path);
         this.markActiveLink(path);
     }
 
     markActiveLink(path) {
+        const current = (path || "")
+            .split("?")[0]
+            .split("#")[0]
+            .split("/")
+            .filter(Boolean)
+            .pop();
+
         document.querySelectorAll("a[data-link]").forEach((a) => {
-            const href = a.getAttribute("href");
-            a.setAttribute("aria-current", href === path ? "page" : "false");
+            const href = a.getAttribute("href") || "";
+            const target = href
+                .replace("./", "")
+                .split("?")[0]
+                .split("#")[0]
+                .split("/")
+                .filter(Boolean)
+                .pop();
+
+            a.setAttribute("aria-current", target === current ? "page" : "false");
         });
     }
 }

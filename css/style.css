@@ -1,3 +1,4 @@
+/* Nested CSS (bod: Nested CSS) */
 .app-header {
     & .brand__name {
         font-weight: 700;
@@ -18,10 +19,11 @@
     --danger: #ff6b6b;
     --ok: #6bff95;
     --radius: 14px;
-    --surface: var(--panel);
+
     --input-bg: #101015;
     --input-border: var(--border);
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
     --header-bg: rgba(23, 23, 28, 0.85);
     --header-border: var(--border);
 }
@@ -39,6 +41,7 @@
     --input-bg: #f1f5f9;
     --input-border: #d6dee9;
     --shadow: 0 10px 25px rgba(15, 23, 42, 0.10);
+
     --header-bg: rgba(255, 255, 255, 0.85);
     --header-border: #e2e8f0;
 }
@@ -79,12 +82,13 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
     background: var(--header-bg);
     border-bottom: 1px solid var(--header-border);
+    /* ✅ только один */
     backdrop-filter: blur(8px);
     position: sticky;
     top: 0;
+    flex-wrap: wrap;
 }
 
 .brand {
@@ -98,9 +102,16 @@ body {
     letter-spacing: 0.2px;
 }
 
+.brand__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+}
+
 .app-nav {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .nav-link {
@@ -117,7 +128,6 @@ body {
     border-color: var(--border);
 }
 
-/* transform */
 .nav-link[aria-current="page"] {
     border-color: var(--accent);
 }
@@ -149,7 +159,6 @@ body {
     border-left: 1px solid var(--border);
 }
 
-/* > + :not */
 .col h3 {
     margin: 0 0 10px;
 }
@@ -161,7 +170,7 @@ body {
 
 .columns {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 12px;
 }
 
@@ -176,7 +185,6 @@ body {
     color: var(--muted);
 }
 
-/* attribute selector */
 .col[data-status="doing"] .col__title {
     color: var(--accent);
 }
@@ -191,7 +199,6 @@ body {
     min-height: 80px;
 }
 
-/* simple animation */
 @keyframes pop {
     from {
         transform: scale(0.98);
@@ -241,6 +248,7 @@ textarea {
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
+    outline: 2px solid rgba(37, 99, 235, 0.35);
     outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
     outline-offset: 2px;
 }
@@ -314,22 +322,6 @@ textarea {
     color: var(--danger);
 }
 
-/* Media queries (responsive) */
-@media (max-width: 900px) {
-    .columns {
-        grid-template-columns: 1fr;
-    }
-
-    .row {
-        grid-template-columns: 1fr;
-    }
-
-    .app-nav {
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
-}
-
 .col__list .sortable-ghost {
     opacity: 0.4;
 }
@@ -348,7 +340,47 @@ textarea {
     display: none;
 }
 
+/* touch */
 .col__list,
 task-card {
     touch-action: manipulation;
+}
+
+/* responsive */
+@media (max-width: 900px) {
+    .row {
+        grid-template-columns: 1fr;
+    }
+
+    .app-nav {
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 600px) {
+    .actions {
+        display: grid;
+        gap: 10px;
+    }
+
+    .actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 520px) {
+    .app-nav {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .nav-link {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    .brand__icon {
+        width: 32px;
+        height: 32px;
+    }
 }
