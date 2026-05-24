@@ -1,93 +1,142 @@
-# KAJ-FocusBoard
+# FocusBoard (PWA) — semestrální práce
 
+Jednoduchá webová aplikace (PWA) pro produktivitu: Kanban tabule (To Do / Doing / Done) + Pomodoro časovač. Aplikace ukládá data lokálně a funguje i offline.
 
+---
 
-## Getting started
+## Spuštění
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+### Doporučeno (kvůli History API + refresh /board)
+```bash
+npx serve -s .
 ```
-cd existing_repo
-git remote add origin https://gitlab.fel.cvut.cz/aliakazi/kaj-focusboard.git
-git branch -M main
-git push -uf origin main
-```
+Poté otevřít např. `http://localhost:3000/board`.
 
-## Integrate with your tools
+> Pozn.: Aplikace používá History API (routes `/board`, `/task`, `/focus`, `/settings`). Pro správný refresh na těchto URL je potřeba SPA fallback (proto `serve -s`).
 
-* [Set up project integrations](https://gitlab.fel.cvut.cz/aliakazi/kaj-focusboard/-/settings/integrations)
+---
 
-## Collaborate with your team
+## Stránky (navigace)
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+- `/board` — Kanban tabule + vytvoření úkolu
+- `/task?id=...` — detail/editace úkolu
+- `/focus` — Pomodoro (SVG progress + zvuk)
+- `/settings` — nastavení (základ)
 
-## Test and Deploy
+---
 
-Use the built-in continuous integration in GitLab.
+## Funkcionality (stručně)
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+- Úkoly: vytvořit / zobrazit / upravit / smazat (CRUD)
+- Drag & Drop mezi sloupci (To Do / Doing / Done)
+- Pomodoro: start/stop/reset, SVG progress ring, zvuk po dokončení
+- Ukládání dat lokálně (LocalStorage)
+- Offline režim (Service Worker + Cache)
+- Vlastní webová komponenta `<task-card>`
 
-***
+---
 
-# Editing this README
+## Struktura projektu
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+- `index.html` — hlavní stránka (SPA)
+- `css/style.css` — styly + responsive
+- `js/app.js` — render stránek, logika UI
+- `js/router.js` — History API router
+- `js/store.js` — OOP model + ukládání úkolů
+- `js/pomodoro.js` — OOP Pomodoro timer
+- `js/components/task-card.js` — Web Component
+- `sw/sw.js` — Service Worker (offline cache)
+- `manifest.json` — PWA manifest
+- `assets/ding.mp3` — zvuk pro timer
 
-## Suggestions for a good README
+---
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+# Pokrytí hodnoticí tabulky (KATEGORIE → kde je to v projektu)
 
-## Name
-Choose a self-explaining name for your project.
+## Dokumentace
+- Cíl projektu, postup, popis funkčnosti: tento `README.md`
+- Komentáře ve zdrojovém kódu: `js/*` (třídy a klíčové funkce)
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## HTML5
+### Validita
+- HTML5 doctype: `index.html` (`<!doctype html>`)
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### Semantické značky
+- `header`, `nav`, `main`, `section`, `footer`: `index.html` + render šablony v `js/app.js`
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Grafika — SVG / Canvas
+- SVG progress ring v Pomodoro: `js/app.js` funkce `renderSvgRing()` + `updatePomodoroUI()`
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### Média — Audio/Video
+- `<audio id="ding">`: `index.html`
+- ovládání zvuku přes JS (play, volume): `js/app.js` (v `renderFocus()` + `onDone`)
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Formulářové prvky
+- Formulář pro vytvoření úkolu: `js/app.js` (`renderBoard()`), prvky:
+  - `required`, `autofocus`, `minlength`, `maxlength`, `placeholder`, `pattern`
+  - `type="date"` pro termín
+- Formulář pro editaci úkolu: `js/app.js` (`renderTaskDetail()`)
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+## CSS
+### Pokročilé selektory
+- atributové selektory: `.col[data-status="..."]` v `css/style.css`
+- kombinátory `>` a `:not(...)`: `.columns > .col:not(:first-child)` v `css/style.css`
+- `:nth-child` lze použít dle potřeby (např. pro stylování seznamu)
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### CSS3 transformace 2D/3D
+- hover efekty: `.nav-link:hover`, `.btn:hover` používají `transform` (`css/style.css`)
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### CSS3 transitions/animations
+- `transition` na odkazech a tlačítkách: `css/style.css`
+- animace přidání úkolu: `@keyframes pop` + `.task-enter`
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### Media queries (responsive)
+- `@media (max-width: 900px)` pro mobilní zobrazení: `css/style.css`
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+### Nested CSS
+- Projekt používá strukturované CSS (modulární bloky).  
+  *(Pokud je vyžadováno SCSS, lze jednoduše převést na `style.scss` se zanořenými pravidly.)*
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## JavaScript
+### OOP přístup (povinné)
+- `Task`, `TaskStore`: `js/store.js`
+- `Router`: `js/router.js`
+- `PomodoroTimer`: `js/pomodoro.js`
 
-## License
-For open source projects, say how it is licensed.
+### Použití JS frameworku / knihovny
+- SortableJS (drag & drop knihovna): připojeno v `index.html` (CDN) a použito v `js/app.js` (`initSortable()`)
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Použití pokročilých JS API
+- LocalStorage: `js/store.js` (`load()`, `save()`)
+- Service Worker + Cache API: `sw/sw.js`
+- DOM API + Events: render + event listenery v `js/app.js`
+
+### Funkční historie (History API)
+- `history.pushState`, `popstate`: `js/router.js`
+- navigace mezi `/board`, `/task`, `/focus`, `/settings`
+
+### Ovládání médií
+- `audio.play()`, nastavení hlasitosti: `js/app.js` (Pomodoro)
+
+### Offline aplikace
+- offline cache: `sw/sw.js`
+- PWA manifest: `manifest.json`
+
+### JS práce s SVG
+- změna `stroke-dashoffset` v čase: `js/app.js` (`updatePomodoroUI()`)
+
+### Webová komponenta
+- vlastní komponenta `<task-card>`: `js/components/task-card.js` + použití v `js/app.js`
+
+## Ostatní
+### Kompletnost řešení
+- CRUD úkolů + Kanban + Pomodoro + ukládání + navigace: `js/app.js`, `js/store.js`
+
+### Estetické zpracování
+- jednotný dark UI, karty, responsivní layout, animace: `css/style.css`
+
+---
+
+## Poznámky
+- Pro správný refresh na `/board` apod. použijte `npx serve -s .`.
+- Data jsou ukládána lokálně v prohlížeči, po zavření aplikace zůstávají zachována.
