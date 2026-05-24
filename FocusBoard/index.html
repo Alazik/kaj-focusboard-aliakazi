@@ -2,12 +2,20 @@
 <html lang="cs">
 
 <head>
+    <script>
+        const params = new URLSearchParams(location.search);
+        const p = params.get('p');
+        if (p) {
+            history.replaceState(null, "", decodeURIComponent(p));
+        }
+    </script>
+
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FocusBoard</title>
 
     <link rel="manifest" href="./manifest.json" />
-    <link rel="icon" href="./assets/icons/icon-192.png">
+    <link rel="icon" href="./assets/icons/icon-192.png" />
     <meta name="theme-color" content="#111111" />
     <link rel="stylesheet" href="./css/style.css" />
 </head>
@@ -17,20 +25,20 @@
 
     <header class="app-header">
         <div class="brand">
-            <span class="brand__logo" aria-hidden="true"><img style="height: 40px; width: 40px;"
-                    src="./assets/icons/icon-512.png" alt="FocusBoard icon"></span>
+            <span class="brand__logo" aria-hidden="true">
+                <img class="brand__icon" src="./assets/icons/icon-512.png" alt="FocusBoard icon">
+            </span>
             <span class="brand__name">FocusBoard</span>
         </div>
 
         <nav class="app-nav" aria-label="Hlavní navigace">
-            <a class="nav-link" href="/board" data-link>Board</a>
-            <a class="nav-link" href="/focus" data-link>Focus</a>
-            <a class="nav-link" href="/settings" data-link>Settings</a>
+            <a class="nav-link" href="./board" data-link>Board</a>
+            <a class="nav-link" href="./focus" data-link>Focus</a>
+            <a class="nav-link" href="./settings" data-link>Settings</a>
         </nav>
     </header>
 
     <main id="main" class="app-main">
-        <!-- ROUTER VIEW -->
         <section id="view" class="view" aria-live="polite"></section>
     </main>
 
@@ -39,7 +47,6 @@
         <span class="status" id="netStatus" aria-label="Stav připojení"></span>
     </footer>
 
-    <!-- HTML5 Media -->
     <audio id="ding" preload="auto" src="./assets/ding.mp3"></audio>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>

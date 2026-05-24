@@ -11,8 +11,6 @@ const ding = document.getElementById("ding");
 const store = new TaskStore();
 const settings = new SettingsStore();
 
-// Načteme uložené nastavení (LocalStorage) a aplikujeme téma hned při startu,
-// aby se UI nepřepínalo až po prvním renderu.
 applyTheme(settings.get().theme);
 
 const router = new Router({ onRoute: renderRoute });
@@ -20,7 +18,6 @@ const router = new Router({ onRoute: renderRoute });
 const timer = new PomodoroTimer({
   onTick: (s) => updatePomodoroUI(s),
   onDone: () => {
-    // Po dokončení intervalu přehrajeme zvuk (Media API).
     ding.currentTime = 0;
     ding.play().catch(() => { });
   },
@@ -31,11 +28,14 @@ setupNetStatus();
 registerServiceWorker();
 
 function renderRoute(path) {
-  // Jednoduchý router: podle URL vykreslí odpovídající "stránku" do #view.
-  if (path === "/" || path === "/board") return renderBoard();
-  if (path === "/task") return renderTaskDetail();
-  if (path === "/focus") return renderFocus();
-  if (path === "/settings") return renderSettings();
+  const clean = (path || "/").split("?")[0].split("#")[0];
+  const last = clean.endsWith("/") ? clean.slice(0, -1) : clean;
+  const route = last.split("/").pop() || "board";
+
+  if (route === "" || route === "board") return renderBoard();
+  if (route === "task") return renderTaskDetail();
+  if (route === "focus") return renderFocus();
+  if (route === "settings") return renderSettings();
   return renderNotFound();
 }
 
@@ -54,12 +54,10 @@ function renderBoard() {
       <div class="card">
         <h2 style="margin:0 0 10px;">Kanban Board</h2>
 
-        <!-- novalidate: na mobilech je validace někdy "tichá" / neviditelná -->
         <form class="form" id="createForm" novalidate>
           <div class="field">
             <label for="title">Název úkolu *</label>
-            <input id="title" name="title" required autofocus
-              minlength="3" maxlength="60"
+            <input id="title" name="title" required autofocus minlength="3" maxlength="60"
               placeholder="Např. Udělat domácí úkol"/>
           </div>
 
@@ -98,43 +96,34 @@ function renderBoard() {
     e.preventDefault();
     const fd = new FormData(e.target);
 
-    // ✅ vlastní jednoduchá validace (spolehlivá i na mobilu)
     const title = String(fd.get("title") || "").trim();
     if (title.length < 3) {
       alert("Název úkolu musí mít alespoň 3 znaky.");
       return;
     }
 
-    // CRUD: vytvoření úkolu + uložení do LocalStorage (přes TaskStore).
     store.create({
       title,
       dueDate: String(fd.get("dueDate") || ""),
       priority: String(fd.get("priority") || "normal"),
     });
 
-    // zůstáváme na boardu, ale přerenderujeme
-    router.go("/board");
+    router.go("./board");
   });
 
-  // SortableJS inicializujeme až po vykreslení sloupců (DOM musí existovat).
-  // Přetahování mezi sloupci aktualizuje status úkolu a uloží se do LocalStorage.
   initSortable();
   updateEmptyMessages();
 }
 
 function renderColumn(title, status, tasks) {
-  const cards = tasks
-    .map(
-      (t) => `
+  const cards = tasks.map((t) => `
     <task-card
       task-id="${t.id}"
       title="${escapeHtml(t.title)}"
       due="${escapeHtml(t.dueDate || "")}"
       priority="${escapeHtml(t.priority)}">
     </task-card>
-  `
-    )
-    .join("");
+  `).join("");
 
   return `
     <section class="col" data-status="${status}">
@@ -156,7 +145,7 @@ function renderTaskDetail() {
     view.innerHTML = `
       <div class="card">
         <h2>Úkol nenalezen</h2>
-        <a href="/board" data-link class="nav-link" style="display:inline-block;">Zpět</a>
+        <a href="./board" data-link class="nav-link" style="display:inline-block;">Zpět</a>
       </div>
     `;
     return;
@@ -206,7 +195,7 @@ function renderTaskDetail() {
         <div class="actions">
           <button class="btn btn--primary" type="submit">Uložit</button>
           <button class="btn btn--danger" type="button" id="deleteBtn">Smazat</button>
-          <a class="btn" href="/board" data-link style="text-decoration:none;">Zpět</a>
+          <a class="btn" href="./board" data-link style="text-decoration:none;">Zpět</a>
         </div>
       </form>
     </div>
@@ -216,7 +205,6 @@ function renderTaskDetail() {
     e.preventDefault();
     const fd = new FormData(e.target);
 
-    // CRUD: update úkolu.
     store.update(task.id, {
       title: String(fd.get("title") || "").trim(),
       description: String(fd.get("description") || ""),
@@ -225,13 +213,12 @@ function renderTaskDetail() {
       status: String(fd.get("status") || "todo"),
     });
 
-    router.go("/board");
+    router.go("./board");
   });
 
   document.getElementById("deleteBtn").addEventListener("click", () => {
-    // CRUD: delete úkolu.
     store.remove(task.id);
-    router.go("/board");
+    router.go("./board");
   });
 }
 
@@ -279,7 +266,6 @@ function renderFocus() {
   volume.value = s.volume;
   ding.volume = s.volume;
 
-  // Důležité: při návratu na stránku Focus nechceme resetovat běžící timer.
   if (timer.isRunning()) {
     updatePomodoroUI(timer.getState());
     minutes.disabled = true;
@@ -291,8 +277,6 @@ function renderFocus() {
   minutes.addEventListener("change", () => {
     const m = Number(minutes.value);
     settings.set({ pomodoroWorkMin: m });
-
-    // Délku Pomodoro měníme jen když timer neběží.
     if (!timer.isRunning()) timer.setMinutes(m);
   });
 
@@ -352,7 +336,7 @@ function renderSettings() {
 
         <div class="actions">
           <button class="btn btn--primary" type="submit">Uložit</button>
-          <a class="btn" href="/board" data-link style="text-decoration:none;">Zpět</a>
+          <a class="btn" href="./board" data-link style="text-decoration:none;">Zpět</a>
         </div>
       </form>
     </div>
@@ -377,7 +361,7 @@ function renderSettings() {
     applyTheme(theme);
     ding.volume = volume;
 
-    router.go("/settings");
+    router.go("./settings");
   });
 }
 
@@ -386,12 +370,12 @@ function renderNotFound() {
     <div class="card">
       <h2>404</h2>
       <p style="color:var(--muted);">Stránka nenalezena.</p>
-      <a class="btn" href="/board" data-link style="text-decoration:none;">Zpět</a>
+      <a class="btn" href="./board" data-link style="text-decoration:none;">Zpět</a>
     </div>
   `;
 }
 
-/* ---------- SVG (JS práce s SVG) ---------- */
+/* ---------- SVG ---------- */
 
 function renderSvgRing() {
   return `
@@ -441,7 +425,6 @@ function setupNetStatus() {
         cache: "no-store",
         signal: ctrl.signal,
       });
-
       setStatus(true);
     } catch {
       setStatus(false);
@@ -450,7 +433,6 @@ function setupNetStatus() {
     }
   };
 
-  // События оставим, но главное — probeInternet()
   window.addEventListener("online", probeInternet);
   window.addEventListener("offline", () => setStatus(false));
 
@@ -459,13 +441,10 @@ function setupNetStatus() {
   setInterval(probeInternet, 3000);
 }
 
-/* ---------- SERVICE WORKER (offline) ---------- */
+/* ---------- SERVICE WORKER ---------- */
 
 async function registerServiceWorker() {
-  // Service Worker zajišťuje offline režim (Cache API).
-  // Po instalaci SW lze aplikaci otevřít i bez internetu (alespoň statické soubory).
   if (!("serviceWorker" in navigator)) return;
-
   try {
     await navigator.serviceWorker.register("./sw/sw.js");
   } catch {
@@ -476,7 +455,6 @@ async function registerServiceWorker() {
 /* ---------- helpers ---------- */
 
 function escapeHtml(s) {
-  // Jednoduché escapování HTML (kvůli bezpečnému vložení textu do šablon).
   return String(s)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -490,7 +468,6 @@ function initSortable() {
     new Sortable(listEl, {
       group: "tasks",
       animation: 150,
-
       draggable: "task-card",
 
       delay: 150,
@@ -500,19 +477,15 @@ function initSortable() {
       filter: ".empty-msg",
       preventOnFilter: false,
 
-      // onAdd = úkol byl přesunut do jiného sloupce.
       onAdd: (evt) => {
         const toStatus = evt.to.dataset.status;
         const id = evt.item.getAttribute("task-id");
         if (!id) return;
-
         store.update(id, { status: toStatus });
         updateEmptyMessages();
       },
 
-      onRemove: () => {
-        updateEmptyMessages();
-      },
+      onRemove: () => updateEmptyMessages(),
     });
   });
 }
@@ -525,19 +498,5 @@ function updateEmptyMessages() {
 }
 
 function applyTheme(theme) {
-  // Uložené téma se aplikuje přes data atribut na <html>.
   document.documentElement.dataset.theme = theme;
 }
-
-// OOP demo (prototypová dědičnost)
-function BaseEntity() { }
-BaseEntity.prototype.getType = function () { return "base"; };
-
-function TaskEntity() { }
-TaskEntity.prototype = Object.create(BaseEntity.prototype);
-TaskEntity.prototype.constructor = TaskEntity;
-TaskEntity.prototype.getType = function () { return "task"; };
-
-// "jmenný prostor" (namespace) pattern
-window.FocusBoard = window.FocusBoard || {};
-window.FocusBoard.TaskEntity = TaskEntity;
