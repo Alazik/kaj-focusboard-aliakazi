@@ -9,19 +9,26 @@ Jednoduchá webová aplikace (PWA) pro produktivitu: **Kanban tabule (To Do / Do
 GitHub Pages (běžící aplikace):  
 `https://alazik.github.io/kaj-focusboard-aliakazi/`
 
-> Pozn.: Projekt je nasazen jako statický web (GitHub Pages). Pro podporu History API je použit SPA fallback přes `404.html`.
+> Pozn.: Projekt je nasazen jako statický web (GitHub Pages). Pro podporu History API je použit SPA fallback přes `404.html` a je přítomen soubor `.nojekyll`.
 
 ---
 
 ## Spuštění lokálně
 
-Doporučeno (kvůli History API + refresh na `/board` apod.):
-
+### Varianta A (doporučeno) — spuštění z kořene repozitáře
 ```bash
 npx serve -s .
 ```
-
 Poté otevřít např. `http://localhost:3000/board`.
+
+### Varianta B — spuštění ze složky `FocusBoard/`
+V repozitáři může být také složka **`FocusBoard/`**, která obsahuje **stejné soubory aplikace** (kopie pro lokální práci).  
+V tom případě lze aplikaci spustit přímo z ní:
+
+```bash
+cd FocusBoard
+npx serve -s .
+```
 
 > Proč ne Live Server? Jednoduchý statický server bez SPA fallback může při refresh na `/board` vrátit „Cannot GET /board“.
 
@@ -50,7 +57,7 @@ Poté otevřít např. `http://localhost:3000/board`.
 
 ## Struktura projektu (aktuální)
 
-> Aplikace je v **kořeni repozitáře** (kvůli GitHub Pages).
+> Pro GitHub Pages je aplikace v **kořeni repozitáře**.
 
 - `index.html` — hlavní stránka (SPA)
 - `404.html` — SPA fallback pro GitHub Pages (History API)
@@ -66,6 +73,7 @@ Poté otevřít např. `http://localhost:3000/board`.
 - `assets/ding.mp3` — zvuk pro timer
 - `assets/icons/icon-192.png`, `assets/icons/icon-512.png` — PWA ikony
 - `.nojekyll` — vypnutí Jekyll (GitHub Pages)
+- *(volitelně)* `FocusBoard/` — kopie stejné aplikace pro lokální spuštění (viz výše)
 
 ---
 
@@ -73,7 +81,7 @@ Poté otevřít např. `http://localhost:3000/board`.
 
 ## Dokumentace (1)
 - Cíl projektu, postup, popis funkčnosti: tento `README.md`
-- Komentáře ve zdrojovém kódu: `js/app.js` (důležité části: routing, SW, drag&drop, Pomodoro)
+- Komentáře ve zdrojovém kódu: `js/app.js` (routing, SW, drag&drop, Pomodoro)
 
 ## HTML5 (7)
 ### Validita (1)
@@ -106,7 +114,7 @@ Poté otevřít např. `http://localhost:3000/board`.
 - responzivní layout pro mobil/tablet: `css/style.css` (`@media ...`)
 
 ### Nested CSS (1)
-- zanořené pravidlo s `&`: `css/style.css` (např. blok `.app-header { & .nav-link ... }`)
+- zanořené pravidlo s `&`: `css/style.css` (např. `.app-header { & .nav-link ... }`)
 
 ## JavaScript (15)
 ### OOP přístup (2)
@@ -127,7 +135,7 @@ Poté otevřít např. `http://localhost:3000/board`.
 - Audio API: `ding.play()`, nastavení hlasitosti: `js/app.js`
 
 ### Offline aplikace (2)
-- `sw/sw.js` cachuje statické soubory, aplikace běží i bez internetu (aspoň UI + data z LocalStorage)
+- `sw/sw.js` cachuje statické soubory, aplikace běží i bez internetu (UI + data z LocalStorage)
 
 ### JS práce s SVG (2)
 - změna `stroke-dashoffset` v čase: `js/app.js`
