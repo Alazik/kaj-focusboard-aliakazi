@@ -1,18 +1,29 @@
-# FocusBoard (PWA) — semestrální práce
+# FocusBoard (PWA) — semestrální práce (KAJ)
 
-Jednoduchá webová aplikace (PWA) pro produktivitu: Kanban tabule (To Do / Doing / Done) + Pomodoro časovač. Aplikace ukládá data lokálně a funguje i offline.
+Jednoduchá webová aplikace (PWA) pro produktivitu: **Kanban tabule (To Do / Doing / Done)** + **Pomodoro časovač**. Aplikace ukládá data lokálně a funguje i offline.
 
 ---
 
-## Spuštění
+## Veřejná URL aplikace
 
-### Doporučeno (kvůli History API + refresh /board)
+GitHub Pages (běžící aplikace):  
+`https://alazik.github.io/kaj-focusboard-aliakazi/`
+
+> Pozn.: Projekt je nasazen jako statický web (GitHub Pages). Pro podporu History API je použit SPA fallback přes `404.html`.
+
+---
+
+## Spuštění lokálně
+
+Doporučeno (kvůli History API + refresh na `/board` apod.):
+
 ```bash
 npx serve -s .
 ```
+
 Poté otevřít např. `http://localhost:3000/board`.
 
-> Pozn.: Aplikace používá History API (routes `/board`, `/task`, `/focus`, `/settings`). Pro správný refresh na těchto URL je potřeba SPA fallback (proto `serve -s`).
+> Proč ne Live Server? Jednoduchý statický server bez SPA fallback může při refresh na `/board` vrátit „Cannot GET /board“.
 
 ---
 
@@ -21,122 +32,120 @@ Poté otevřít např. `http://localhost:3000/board`.
 - `/board` — Kanban tabule + vytvoření úkolu
 - `/task?id=...` — detail/editace úkolu
 - `/focus` — Pomodoro (SVG progress + zvuk)
-- `/settings` — nastavení (základ)
+- `/settings` — nastavení (téma, délka Pomodoro, hlasitost)
 
 ---
 
 ## Funkcionality (stručně)
 
 - Úkoly: vytvořit / zobrazit / upravit / smazat (CRUD)
-- Drag & Drop mezi sloupci (To Do / Doing / Done)
+- Drag & Drop mezi sloupci (SortableJS)
 - Pomodoro: start/stop/reset, SVG progress ring, zvuk po dokončení
 - Ukládání dat lokálně (LocalStorage)
-- Offline režim (Service Worker + Cache)
+- Offline režim (Service Worker + Cache API)
 - Vlastní webová komponenta `<task-card>`
+- Světlé/tmavé téma
 
 ---
 
-## Struktura projektu
+## Struktura projektu (aktuální)
+
+> Aplikace je v **kořeni repozitáře** (kvůli GitHub Pages).
 
 - `index.html` — hlavní stránka (SPA)
-- `css/style.css` — styly + responsive
-- `js/app.js` — render stránek, logika UI
+- `404.html` — SPA fallback pro GitHub Pages (History API)
+- `css/style.css` — styly + responsive + nested CSS
+- `js/app.js` — render stránek, logika UI, komentáře
 - `js/router.js` — History API router
 - `js/store.js` — OOP model + ukládání úkolů
-- `js/pomodoro.js` — OOP Pomodoro timer
+- `js/settings.js` — nastavení (LocalStorage)
+- `js/pomodoro.js` — Pomodoro timer
 - `js/components/task-card.js` — Web Component
 - `sw/sw.js` — Service Worker (offline cache)
 - `manifest.json` — PWA manifest
 - `assets/ding.mp3` — zvuk pro timer
+- `assets/icons/icon-192.png`, `assets/icons/icon-512.png` — PWA ikony
+- `.nojekyll` — vypnutí Jekyll (GitHub Pages)
 
 ---
 
 # Pokrytí hodnoticí tabulky (KATEGORIE → kde je to v projektu)
 
-## Dokumentace
+## Dokumentace (1)
 - Cíl projektu, postup, popis funkčnosti: tento `README.md`
-- Komentáře ve zdrojovém kódu: `js/*` (třídy a klíčové funkce)
+- Komentáře ve zdrojovém kódu: `js/app.js` (důležité části: routing, SW, drag&drop, Pomodoro)
 
-## HTML5
-### Validita
-- HTML5 doctype: `index.html` (`<!doctype html>`)
+## HTML5 (7)
+### Validita (1)
+- `<!doctype html>`: `index.html`
 
-### Semantické značky
-- `header`, `nav`, `main`, `section`, `footer`: `index.html` + render šablony v `js/app.js`
+### Semantické značky (1)
+- `header`, `nav`, `main`, `section`, `footer`: `index.html` + šablony v `js/app.js`
 
-### Grafika — SVG / Canvas
-- SVG progress ring v Pomodoro: `js/app.js` funkce `renderSvgRing()` + `updatePomodoroUI()`
+### Grafika — SVG / Canvas (2)
+- SVG progress ring: `js/app.js` (`renderSvgRing()`, `updatePomodoroUI()`)
 
-### Média — Audio/Video
-- `<audio id="ding">`: `index.html`
-- ovládání zvuku přes JS (play, volume): `js/app.js` (v `renderFocus()` + `onDone`)
+### Média — Audio/Video (1)
+- `<audio id="ding">`: `index.html`, přehrání v `js/app.js` (Pomodoro `onDone`)
 
-### Formulářové prvky
-- Formulář pro vytvoření úkolu: `js/app.js` (`renderBoard()`), prvky:
-  - `required`, `autofocus`, `minlength`, `maxlength`, `placeholder`, `pattern`
-  - `type="date"` pro termín
-- Formulář pro editaci úkolu: `js/app.js` (`renderTaskDetail()`)
+### Formulářové prvky (2)
+- Vytvoření úkolu: `js/app.js` (`renderBoard()`), validace přes JS (spolehlivé i na mobilu)
+- Editace úkolu: `js/app.js` (`renderTaskDetail()`), `type="date"`, `required`, `maxlength`, `placeholder`
 
-## CSS
-### Pokročilé selektory
-- atributové selektory: `.col[data-status="..."]` v `css/style.css`
-- kombinátory `>` a `:not(...)`: `.columns > .col:not(:first-child)` v `css/style.css`
-- `:nth-child` lze použít dle potřeby (např. pro stylování seznamu)
+## CSS (8)
+### Pokročilé selektory (1)
+- atributové selektory, kombinátory, pseudo-třídy: `css/style.css` (např. `.col[data-status=...]`, `>`, `:not()`)
 
-### CSS3 transformace 2D/3D
-- hover efekty: `.nav-link:hover`, `.btn:hover` používají `transform` (`css/style.css`)
+### CSS3 transformace 2D/3D (2)
+- `transform` na tlačítkách/odkazech: `css/style.css`
 
-### CSS3 transitions/animations
-- `transition` na odkazech a tlačítkách: `css/style.css`
-- animace přidání úkolu: `@keyframes pop` + `.task-enter`
+### CSS3 transitions/animations (2)
+- `transition` + animace přidání karty: `css/style.css` (`@keyframes pop` + `.task-enter`)
 
-### Media queries (responsive)
-- `@media (max-width: 900px)` pro mobilní zobrazení: `css/style.css`
+### Media queries (2)
+- responzivní layout pro mobil/tablet: `css/style.css` (`@media ...`)
 
-### Nested CSS
-- Projekt používá strukturované CSS (modulární bloky).  
-  *(Pokud je vyžadováno SCSS, lze jednoduše převést na `style.scss` se zanořenými pravidly.)*
+### Nested CSS (1)
+- zanořené pravidlo s `&`: `css/style.css` (např. blok `.app-header { & .nav-link ... }`)
 
-## JavaScript
-### OOP přístup (povinné)
-- `Task`, `TaskStore`: `js/store.js`
-- `Router`: `js/router.js`
-- `PomodoroTimer`: `js/pomodoro.js`
+## JavaScript (15)
+### OOP přístup (2)
+- třídy a OOP struktura: `js/router.js`, `js/store.js`, `js/pomodoro.js`, `js/settings.js`
 
-### Použití JS frameworku / knihovny
-- SortableJS (drag & drop knihovna): připojeno v `index.html` (CDN) a použito v `js/app.js` (`initSortable()`)
+### Použití JS frameworku / knihovny (1)
+- SortableJS přes CDN v `index.html`, použití v `js/app.js` (`initSortable()`)
 
-### Použití pokročilých JS API
-- LocalStorage: `js/store.js` (`load()`, `save()`)
+### Použití pokročilých JS API (3)
+- LocalStorage: `js/store.js`, `js/settings.js`
 - Service Worker + Cache API: `sw/sw.js`
-- DOM API + Events: render + event listenery v `js/app.js`
+- Drag&Drop přes knihovnu (SortableJS)
 
-### Funkční historie (History API)
-- `history.pushState`, `popstate`: `js/router.js`
-- navigace mezi `/board`, `/task`, `/focus`, `/settings`
+### Funkční historie (2)
+- History API: `js/router.js` (pushState/popstate), SPA fallback `404.html` pro GitHub Pages
 
-### Ovládání médií
-- `audio.play()`, nastavení hlasitosti: `js/app.js` (Pomodoro)
+### Ovládání médií (1)
+- Audio API: `ding.play()`, nastavení hlasitosti: `js/app.js`
 
-### Offline aplikace
-- offline cache: `sw/sw.js`
-- PWA manifest: `manifest.json`
+### Offline aplikace (2)
+- `sw/sw.js` cachuje statické soubory, aplikace běží i bez internetu (aspoň UI + data z LocalStorage)
 
-### JS práce s SVG
-- změna `stroke-dashoffset` v čase: `js/app.js` (`updatePomodoroUI()`)
+### JS práce s SVG (2)
+- změna `stroke-dashoffset` v čase: `js/app.js`
 
-### Webová komponenta
-- vlastní komponenta `<task-card>`: `js/components/task-card.js` + použití v `js/app.js`
+### Webová komponenta (2)
+- vlastní element `<task-card>`: `js/components/task-card.js`
 
-## Ostatní
-### Kompletnost řešení
-- CRUD úkolů + Kanban + Pomodoro + ukládání + navigace: `js/app.js`, `js/store.js`
+## Ostatní (5)
+### Kompletnost řešení (3)
+- CRUD úkolů + kanban + drag&drop + pomodoro + ukládání + nastavení
 
-### Estetické zpracování
-- jednotný dark UI, karty, responsivní layout, animace: `css/style.css`
+### Estetické zpracování (2)
+- jednotný design, karty, stíny, tmavé/světlé téma, responzivita: `css/style.css`
 
 ---
 
-## Poznámky
-- Pro správný refresh na `/board` apod. použijte `npx serve -s .`.
-- Data jsou ukládána lokálně v prohlížeči, po zavření aplikace zůstávají zachována.
+## Poznámky k GitHub Pages (důležité)
+
+- `404.html` řeší SPA fallback (History API) pro refresh na deep linkách.
+- `.nojekyll` vypíná Jekyll, aby GitHub Pages pouze publikoval statické soubory.
+- V navigaci se používají relativní odkazy `./board`, `./focus`, `./settings` (kvůli nasazení v podadresáři repozitáře).
