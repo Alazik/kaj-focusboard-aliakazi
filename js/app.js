@@ -29,10 +29,12 @@ registerServiceWorker();
 
 function renderRoute(path) {
   const clean = (path || "/").split("?")[0].split("#")[0];
-  const last = clean.endsWith("/") ? clean.slice(0, -1) : clean;
-  const route = last.split("/").pop() || "board";
 
-  if (route === "" || route === "board") return renderBoard();
+  const parts = clean.split("/").filter(Boolean);
+
+  const route = (parts.length <= 1) ? "board" : (parts[parts.length - 1] || "board");
+
+  if (route === "board") return renderBoard();
   if (route === "task") return renderTaskDetail();
   if (route === "focus") return renderFocus();
   if (route === "settings") return renderSettings();
